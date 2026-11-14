@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>PixElis Art</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: #1e1e2e;
+            color: #ffffff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 8px;
+            height: 100dvh;
+            width: 100vw;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            user-select: none;
+        }
+
+        #menu-screen {
+            text-align: center;
+            background: #2a2a40;
+            padding: 30px 20px;
+            border-radius: 20px;
+            border: 3px solid #ff79c6;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.6);
+            width: 90%;
+            max-width: 360px;
+        }
+
+        #menu-screen h1 {
+            color: #ff79c6;
+            font-size: 26px;
+            margin-top: 0;
+            margin-bottom: 10px;
+        }
+
+        .menu-btn {
+            display: block;
+            width: 100%;
+            margin: 14px auto;
+            padding: 16px;
+            font-size: 18px;
+            font-weight: bold;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+        }
+
+        .menu-btn:active { transform: scale(0.97); }
+        .btn-free { background: #50fa7b; color: #1e1e2e; }
+        .btn-challenge { background: #8be9fd; color: #1e1e2e; }
+
+        /* Tela do Jogo em Coluna Vertical */
+        #game-screen {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+            height: 100%;
+            max-width: 480px;
+        }
+
+        #top-bar {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            background: #2a2a40;
+            padding: 8px;
+            border-radius: 12px;
+            flex-wrap: wrap;
+        }
+
+        .action-btn {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+        .btn-back { background: #6272a4; color: white; }
+        .btn-iron { background: #ffb86c; color: #1e1e2e; }
+        .btn-clear { background: #ff5555; color: white; }
+
+        #status-msg {
+            width: 100%;
+            text-align: center;
+            font-size: 13px;
+            font-weight: bold;
+            color: #50fa7b;
+            min-height: 16px;
+        }
+
+        /* Painel do Modelo compacto no topo no Modo Desafio */
+        #reference-panel {
+            background: #2a2a40;
+            padding: 6px 12px;
+            border-radius: 12px;
+            border: 2px solid #8be9fd;
+            display: none;
+            align-items: center;
+            gap: 12px;
+            width: 94vw;
+            max-width: 440px;
+            justify-content: space-between;
+        }
+
+        #ref-grid {
+            display: grid;
+            grid-template-columns: repeat(20, 6px);
+            grid-template-rows: repeat(20, 6px);
+            gap: 1px;
+            background: #1e1e2e;
+            padding: 4px;
+            border-radius: 4px;
+        }
+
+        .ref-cell {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #2f3542;
+        }
+
+        /* Tabuleiro Gigante Responsivo (ocupa quase toda a largura) */
+        #board {
+            display: grid;
+            grid-template-columns: repeat(20, 1fr);
+            grid-template-rows: repeat(20, 1fr);
+            gap: 1px;
+            width: 94vw;
+            height: 94vw;
+            max-width: 440px;
+            max-height: 440px;
+            background: #dcdde1;
+            padding: 6px;
+            border-radius: 10px;
+            border: 3px solid #7f8fa6;
+            touch-action: none; /* Impede a tela de rolar ao desenhar */
+        }
+
+        .peg {
+            width: 100%;
+            height: 100%;
+            background: #f5f6fa;
+            border-radius: 2px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .peg::after {
+            content: '';
+            width: 22%;
+            height: 22%;
+            background: #a4b0be;
+            border-radius: 50%;
+        }
+
+        .bead {
+            width: 90%;
+            height: 90%;
+            border-radius: 50%;
+            position: relative;
+            box-shadow: inset 0 -2px 2px rgba(0,0,0,0.25);
+            transition: all 0.3s ease;
+            pointer-events: none;
+        }
+
+        .bead::after {
+            content: '';
+            position: absolute;
+            top: 50%; left: 50%;
+            width: 34%; height: 34%;
+            background: #dcdde1;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            transition: all 0.3s ease;
+        }
+
+        .board-ironed .bead {
+            width: 102%;
+            height: 102%;
+            border-radius: 3px;
+            box-shadow: none;
+        }
+
+        .board-ironed .bead::after {
+            width: 10%;
+            height: 10%;
+            opacity: 0.3;
+        }
+
+        /* Paleta de Cores Horizontal na Parte Inferior (2 linhas x 8 colunas) */
+        #palette-box {
+            background: #2a2a40;
+            padding: 8px;
+            border-radius: 14px;
+            border: 2px solid #44475a;
+            display: grid;
+            grid-template-columns: repeat(8, 1fr);
+            gap: 6px;
+            width: 94vw;
+            max-width: 440px;
+        }
+
+        .color-slot {
+            aspect-ratio: 1 / 1;
+            width: 100%;
+            border-radius: 50%;
+            border: 2px solid transparent;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+        }
+
+        .color-slot.active {
+            border-color: #ffffff;
+            transform: scale(1.12);
+            box-shadow: 0 0 8px rgba(255,255,255,0.8);
+        }
+    </style>
+</head>
+
+
+
+
+
+<body>
+
+    <div id="menu-screen">
+        <h1>PixElis Art</h1>
+        <p style="color: #bd93f9; margin-bottom: 20px; font-size: 15px;">Monte suas artes!</p>
+        <button class="menu-btn btn-free" onclick="startGame('free')">🎨 Estúdio Livre</button>
+        <button class="menu-btn btn-challenge" onclick="startGame('challenge')">🏆 Modo Desafio</button>
+    </div>
+
+    <div id="game-screen">
+        <div id="top-bar">
+            <button class="action-btn btn-back" onclick="backToMenu()">⬅ Menu</button>
+            <button class="action-btn btn-iron" onclick="toggleIron()">♨️ Ferro</button>
+            <button class="action-btn btn-clear" onclick="clearBoard()">🗑️ Limpar</button>
+            <div id="status-msg"></div>
+        </div>
+
+        <div id="reference-panel">
+            <div>
+                <div style="font-weight: bold; color: #8be9fd; font-size: 14px;" id="level-title">Modelo 1</div>
+                <div style="font-size: 11px; color: #ccc;">Copie o desenho ao lado:</div>
+                <button class="action-btn btn-free" id="next-btn" style="display:none; margin-top:6px; padding: 6px 10px;" onclick="nextLevel()">Próximo ➡</button>
+            </div>
+            <div id="ref-grid"></div>
+        </div>
+
+        <div id="board"></div>
+
+        <div id="palette-box"></div>
+    </div>
+
+
+
+
+
+    <script>
+        const BOARD_SIZE = 20;
+
+        const COLORS = [
+            { id: 1, name: 'Preto', hex: '#222222' },
+            { id: 2, name: 'Branco', hex: '#ffffff' },
+            { id: 3, name: 'Vermelho', hex: '#ff3b30' },
+            { id: 4, name: 'Rosa', hex: '#ff79c6' },
+            { id: 5, name: 'Amarelo', hex: '#ffcc00' },
+            { id: 6, name: 'Laranja', hex: '#ff9500' },
+            { id: 7, name: 'Verde Claro', hex: '#4cd964' },
+            { id: 8, name: 'Azul Escuro', hex: '#007aff' },
+            { id: 9, name: 'Roxo', hex: '#af52de' },
+            { id: 'A', name: 'Cinza', hex: '#8e8e93' },
+            { id: 'B', name: 'Marrom', hex: '#8d5524' },
+            { id: 'C', name: 'Azul Claro', hex: '#5ac8fa' },
+            { id: 'D', name: 'Verde Escuro', hex: '#2e7d32' },
+            { id: 'E', name: 'Lilás Pastel', hex: '#d1a3ff' },
+            { id: 'F', name: 'Creme / Pele', hex: '#ffdbac' },
+            { id: 0, name: 'Pinça (Apagar)', hex: 'eraser' }
+        ];
+
+        const RAW_CHALLENGES = [
+            {
+                name: "1. Coração",
+                rows: [
+                    "000000000000",
+                    "001100001100",
+                    "013310013310",
+                    "132331133331",
+                    "132333333331",
+                    "133333333331",
+                    "013333333310",
+                    "001333333100",
+                    "000133331000",
+                    "000013310000",
+                    "000001100000",
+                    "000000000000"
+                ]
+            },
+            {
+                name: "2. Cogumelo",
+                rows: [
+                    "000011110000",
+                    "001133331100",
+                    "013223322310",
+                    "133223322331",
+                    "133333333331",
+                    "122333333221",
+                    "122333333221",
+                    "011111111110",
+                    "001221122100",
+                    "001222222100",
+                    "000111111000",
+                    "000000000000"
+                ]
+            },
+            {
+                name: "3. Patinho",
+                rows: [
+                    "000001110000",
+                    "000015551000",
+                    "000151555100",
+                    "001665555100",
+                    "000115551000",
+                    "000015555110",
+                    "000155555551",
+                    "001555665551",
+                    "001555555510",
+                    "000111111100",
+                    "000016001600",
+                    "000000000000"
+                ]
+            },
+            {
+                name: "4. Florzinha",
+                rows: [
+                    "000011110000",
+                    "000144441000",
+                    "011444444110",
+                    "144415514441",
+                    "144455554441",
+                    "011415514110",
+                    "000144441000",
+                    "000011110000",
+                    "001101710110",
+                    "017711711771",
+                    "001111711110",
+                    "000001710000"
+                ]
+            },
+            {
+                name: "5. Fantasma Boo",
+                rows: [
+                    "000011110000",
+                    "001122221100",
+                    "012222222210",
+                    "122122221221",
+                    "122122221221",
+                    "122222222221",
+                    "122111111221",
+                    "122133331221",
+                    "122211112221",
+                    "012222222210",
+                    "001122221100",
+                    "000011110000"
+                ]
+            }
+        ];
+
+        const CHALLENGES = RAW_CHALLENGES.map(ch => {
+            const fullGrid = Array(BOARD_SIZE).fill().map(() => Array(BOARD_SIZE).fill(0));
+            const offset = Math.floor((BOARD_SIZE - 12) / 2);
+            for (let r = 0; r < 12; r++) {
+                for (let c = 0; c < 12; c++) {
+                    const val = ch.rows[r][c];
+                    fullGrid[r + offset][c + offset] = isNaN(val) ? val : parseInt(val);
+                }
+            }
+            return { name: ch.name, grid: fullGrid };
+        });
+
+        let currentMode = 'free';
+        let currentLevel = 0;
+        let selectedColorId = 3;
+        let isDrawing = false;
+        let isIroned = false;
+        let boardState = Array(BOARD_SIZE).fill().map(() => Array(BOARD_SIZE).fill(0));
+
+
+
+
+
+        function buildPalette() {
+            const palette = document.getElementById('palette-box');
+            palette.innerHTML = '';
+            COLORS.forEach(c => {
+                const slot = document.createElement('div');
+                slot.className = 'color-slot' + (c.id === selectedColorId ? ' active' : '');
+                slot.title = c.name;
+                if (c.hex === 'eraser') {
+                    slot.style.background = '#44475a';
+                    slot.innerText = '🥢';
+                } else {
+                    slot.style.background = c.hex;
+                }
+                slot.onclick = () => {
+                    selectedColorId = c.id;
+                    document.querySelectorAll('.color-slot').forEach(el => el.classList.remove('active'));
+                    slot.classList.add('active');
+                };
+                palette.appendChild(slot);
+            });
+        }
+
+        function buildBoard() {
+            const board = document.getElementById('board');
+            board.innerHTML = '';
+            board.classList.remove('board-ironed');
+            isIroned = false;
+
+            for (let r = 0; r < BOARD_SIZE; r++) {
+                for (let c = 0; c < BOARD_SIZE; c++) {
+                    const peg = document.createElement('div');
+                    peg.className = 'peg';
+                    peg.dataset.r = r;
+                    peg.dataset.c = c;
+
+                    // Suporte para Mouse (caso teste no PC também)
+                    peg.addEventListener('mousedown', () => {
+                        isDrawing = true;
+                        placeBead(r, c, peg);
+                    });
+
+                    peg.addEventListener('mouseenter', () => {
+                        if (isDrawing) placeBead(r, c, peg);
+                    });
+
+                    board.appendChild(peg);
+                }
+            }
+
+            // Suporte nativo para Touch Screen (tocar e deslizar o dedo)
+            board.addEventListener('touchstart', handleTouch, { passive: false });
+            board.addEventListener('touchmove', handleTouch, { passive: false });
+        }
+
+        function handleTouch(e) {
+            e.preventDefault(); // Evita zoom ou rolagem acidental
+            const touch = e.touches[0];
+            const target = document.elementFromPoint(touch.clientX, touch.clientY);
+
+            if (target && target.classList.contains('peg')) {
+                const r = parseInt(target.dataset.r);
+                const c = parseInt(target.dataset.c);
+                placeBead(r, c, target);
+            }
+        }
+
+        window.addEventListener('mouseup', () => isDrawing = false);
+        window.addEventListener('touchend', () => isDrawing = false);
+
+        function placeBead(r, c, pegEl) {
+            if (isIroned || boardState[r][c] === selectedColorId) return;
+
+            boardState[r][c] = selectedColorId;
+            pegEl.innerHTML = '';
+
+            if (selectedColorId !== 0) {
+                const colorObj = COLORS.find(col => col.id === selectedColorId);
+                const bead = document.createElement('div');
+                bead.className = 'bead';
+                bead.style.backgroundColor = colorObj.hex;
+                pegEl.appendChild(bead);
+            }
+
+            if (currentMode === 'challenge') checkChallenge();
+        }
+
+        function startGame(mode) {
+            currentMode = mode;
+            currentLevel = 0;
+            document.getElementById('menu-screen').style.display = 'none';
+            document.getElementById('game-screen').style.display = 'flex';
+            document.getElementById('status-msg').innerText = '';
+
+            buildPalette();
+            clearBoard();
+
+            if (mode === 'challenge') {
+                document.getElementById('reference-panel').style.display = 'flex';
+                loadChallenge(0);
+            } else {
+                document.getElementById('reference-panel').style.display = 'none';
+            }
+        }
+
+        function backToMenu() {
+            document.getElementById('game-screen').style.display = 'none';
+            document.getElementById('menu-screen').style.display = 'block';
+        }
+
+        function clearBoard() {
+            boardState = Array(BOARD_SIZE).fill().map(() => Array(BOARD_SIZE).fill(0));
+            document.getElementById('status-msg').innerText = '';
+            document.getElementById('next-btn').style.display = 'none';
+            buildBoard();
+        }
+
+        function toggleIron() {
+            const board = document.getElementById('board');
+            isIroned = !isIroned;
+            if (isIroned) {
+                board.classList.add('board-ironed');
+                document.getElementById('status-msg').innerText = '✨ Peça fundida com o ferro!';
+            } else {
+                board.classList.remove('board-ironed');
+                document.getElementById('status-msg').innerText = '';
+            }
+        }
+
+        function loadChallenge(index) {
+            const challenge = CHALLENGES[index];
+            document.getElementById('level-title').innerText = challenge.name;
+            const refGrid = document.getElementById('ref-grid');
+            refGrid.innerHTML = '';
+
+            for (let r = 0; r < BOARD_SIZE; r++) {
+                for (let c = 0; c < BOARD_SIZE; c++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'ref-cell';
+                    const colorId = challenge.grid[r][c];
+                    if (colorId !== 0) {
+                        const colorObj = COLORS.find(col => col.id === colorId);
+                        cell.style.backgroundColor = colorObj.hex;
+                    }
+                    refGrid.appendChild(cell);
+                }
+            }
+        }
+
+        function checkChallenge() {
+            const targetGrid = CHALLENGES[currentLevel].grid;
+            for (let r = 0; r < BOARD_SIZE; r++) {
+                for (let c = 0; c < BOARD_SIZE; c++) {
+                    if (boardState[r][c] !== targetGrid[r][c]) return;
+                }
+            }
+            document.getElementById('status-msg').innerText = '🎉 Perfeito! Você montou igualzinho!';
+            if (currentLevel < CHALLENGES.length - 1) {
+                document.getElementById('next-btn').style.display = 'inline-block';
+            } else {
+                document.getElementById('status-msg').innerText = '🏆 Parabéns! Completou os 5 desafios!';
+            }
+        }
+
+        function nextLevel() {
+            currentLevel++;
+            clearBoard();
+            loadChallenge(currentLevel);
+        }
+    </script>
+</body>
+</html>
